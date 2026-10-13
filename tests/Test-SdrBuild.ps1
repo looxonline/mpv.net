@@ -14,12 +14,18 @@ $setup = @(Get-ChildItem "$out/installer" -Filter '*.exe')
 if ($setup.Count -ne 1) { throw 'Expected exactly one installer' }
 $appVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo("$out/publish/mpvnet.exe").FileVersion
 $setupVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($setup[0].FullName)
+$fileVersion = '{0}.{1}.{2}.{3}' -f $setupVersion.FileMajorPart, $setupVersion.FileMinorPart, $setupVersion.FileBuildPart, $setupVersion.FilePrivatePart
+$productVersion = '{0}.{1}.{2}.{3}' -f $setupVersion.ProductMajorPart, $setupVersion.ProductMinorPart, $setupVersion.ProductBuildPart, $setupVersion.ProductPrivatePart
 [pscustomobject]@{
     ApplicationVersion = $appVersion
+    InstallerBinaryFileVersion = $fileVersion
+    InstallerBinaryProductVersion = $productVersion
     InstallerFileVersion = $setupVersion.FileVersion
     InstallerProductVersion = $setupVersion.ProductVersion
 } | ConvertTo-Json | Tee-Object -FilePath "$results/installer-version.json" | Write-Host
-if ($setupVersion.FileVersion -ne $appVersion -or $setupVersion.ProductVersion -ne $appVersion) {
+# Inno Setup pads the textual version resource fields with spaces.
+if ($fileVersion -ne $appVersion -or $productVersion -ne $appVersion -or
+    "$($setupVersion.FileVersion)".Trim() -ne $appVersion -or "$($setupVersion.ProductVersion)".Trim() -ne $appVersion) {
     throw "Installer version does not match application version $appVersion"
 }
 $installed = Join-Path $out 'installed'
