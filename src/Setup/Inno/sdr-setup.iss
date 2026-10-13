@@ -10,6 +10,8 @@
 AppId={{AC7F2639-50CC-4CF2-A2FB-2B8385570342}
 AppName=mpv.net SDR
 AppVersion={#AppVersion}
+VersionInfoVersion={#AppVersion}
+VersionInfoProductVersion={#AppVersion}
 AppPublisher=looxonline (mpv.net SDR fork)
 AppPublisherURL=https://github.com/looxonline/mpv.net
 DefaultDirName={localappdata}\Programs\mpv.net SDR

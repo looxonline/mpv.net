@@ -12,6 +12,11 @@ foreach ($mode in @('defaults', 'override', 'regressions', 'render')) {
 }
 $setup = @(Get-ChildItem "$out/installer" -Filter '*.exe')
 if ($setup.Count -ne 1) { throw 'Expected exactly one installer' }
+$appVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo("$out/publish/mpvnet.exe").FileVersion
+$setupVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($setup[0].FullName)
+if ($setupVersion.FileVersion -ne $appVersion -or $setupVersion.ProductVersion -ne $appVersion) {
+    throw "Installer version does not match application version $appVersion"
+}
 $installed = Join-Path $out 'installed'
 $process = Start-Process $setup[0].FullName -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/DIR=`"$installed`"", "/LOG=`"$results/install.log`"") -Wait -PassThru
 if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
