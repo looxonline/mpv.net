@@ -60,7 +60,7 @@ file = mpv
 directory = Video
 help = Video output drivers to be used.\n\nFor more information visit:
 url = https://mpv.io/manual/master/#video-output-drivers-vo
-default = info
+default = gpu
 option = info      Choose the best mode automatically.
 option = gpu       General purpose, customizable, GPU-accelerated video output driver. It supports extended scaling methods, dithering, color management, custom shaders, HDR, and more.
 option = gpu-next  Experimental video renderer based on libplacebo. This supports almost the same set of features as --vo=gpu.
@@ -90,7 +90,7 @@ name = gpu-api
 file = mpv
 directory = Video/Render Options
 help = Controls which type of graphics APIs will be accepted.
-default = auto
+default = d3d11
 option = auto    Use any available API. Note that the default GPU API used for this value is subject to change, and must not be relied upon. If a certain GPU API needs to be used, it must be explicitly specified
 option = d3d11   Allow only gpu-context=d3d11
 option = opengl  Allow only OpenGL (requires OpenGL 2.1+ or GLES 2.0+)
@@ -106,6 +106,30 @@ option = angle      Direct3D11 through the OpenGL ES translation layer ANGLE. Th
 option = win        Win32/WGL
 option = dxinterop  (experimental) Win32, using WGL for rendering and Direct3D 9Ex for presentation. Works on Nvidia and AMD. Newer Intel chips with the latest drivers may also work.
 option = winvk      VK_KHR_win32_surface
+
+name = icc-profile-auto
+file = mpv
+directory = Video/Colour Management
+help = Automatically use the Windows ICC profile for the monitor showing the video. Clear icc-profile to use automatic selection. To turn ICC conversion off, select no and clear icc-profile. Restart playback after changing settings. Use Windows HDR off for this SDR build.
+default = yes
+option = yes
+option = no
+
+name = icc-profile
+file = mpv
+directory = Video/Colour Management
+help = Optional full path to an ICC/ICM display profile. Overrides automatic monitor selection. Leave empty to follow the current monitor. WCS profiles are unsupported. Restart playback after changing settings.
+width = 600
+
+name = icc-intent
+file = mpv
+directory = Video/Colour Management
+help = Rendering intent used for the display colour conversion.
+default = 1
+option = 0  Perceptual
+option = 1  Relative colorimetric
+option = 2  Saturation
+option = 3  Absolute colorimetric
 
 name = scale
 file = mpv

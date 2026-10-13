@@ -44,6 +44,7 @@ public partial class MainForm : Form
     bool _wasMaximized;
     bool _maxSizeSet;
     bool _isCursorVisible = true;
+    string? _iccDisplay;
 
     public MainForm()
     {
@@ -1042,6 +1043,10 @@ public partial class MainForm : Form
                 break;
             case 0x001A: // WM_SETTINGCHANGE
                 UpdateDarkMode();
+                RefreshDisplayProfile(true);
+                break;
+            case 0x007E: // WM_DISPLAYCHANGE
+                RefreshDisplayProfile(true);
                 break;
             case 0x51: // WM_INPUTLANGCHANGE
                 ActivateKeyboardLayout(m.LParam, 0x00000100u /*KLF_SETFORPROCESS*/);
@@ -1398,6 +1403,7 @@ public partial class MainForm : Form
     {
         base.OnResize(e);
         SaveWindowProperties();
+        RefreshDisplayProfile();
         
         if (FormBorderStyle != FormBorderStyle.None)
         {
@@ -1460,6 +1466,27 @@ public partial class MainForm : Form
     {
         base.OnMove(e);
         SaveWindowProperties();
+        RefreshDisplayProfile();
+    }
+
+    void RefreshDisplayProfile(bool force = false)
+    {
+        if (!IsHandleCreated || IsDisposed)
+            return;
+
+        string display = System.Windows.Forms.Screen.FromHandle(Handle).DeviceName;
+        if (!force && display == _iccDisplay)
+            return;
+
+        // Moving an embedding parent need not move/resize the child relative to
+        // that parent. Ask mpv's Win32 backend to re-query the current monitor.
+        // Resolve each time because changing the video output can recreate it.
+        IntPtr child = FindWindowEx(Handle, IntPtr.Zero, "mpv", null);
+        if (child == IntPtr.Zero)
+            return;
+
+        _iccDisplay = display;
+        PostMessage(child, 0x007E /*WM_DISPLAYCHANGE*/, IntPtr.Zero, IntPtr.Zero);
     }
 
     protected override void OnDragEnter(DragEventArgs e)

@@ -102,6 +102,16 @@ public class MainPlayer : MpvClient
 
         SetPropertyInt("osd-duration", 2000);
 
+        // Applied before mpv.conf and command-line options, so users can override
+        // these defaults. Colour conversion happens in mpv's renderer after decode.
+        SetPropertyString("vo", "gpu");
+        SetPropertyString("gpu-api", "d3d11");
+        SetPropertyBool("icc-profile-auto", true);
+        SetPropertyString("target-colorspace-hint", "no");
+        SetPropertyString("target-prim", "bt.709");
+        SetPropertyString("target-trc", "bt.1886");
+        SetPropertyInt("target-peak", 100);
+
         SetPropertyBool("input-default-bindings", true);
         SetPropertyBool("input-builtin-bindings", false);
         SetPropertyBool("input-media-keys", true);

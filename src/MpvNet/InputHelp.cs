@@ -122,6 +122,7 @@ public static class InputHelp
         Add(b, new (_("View"), _("Toggle OSC Visibility"), "script-binding osc/visibility", "Del"));
         Add(b, new (_("View"), _("Media Info On-Screen"), "script-message-to mpvnet show-media-info osd", "i"));
         Add(b, new (_("View"), _("Media Info Message Box"), "script-message-to mpvnet show-media-info msgbox", "Ctrl+m"));
+        Add(b, new (_("View"), _("Display Colour Information"), "script-message-to mpvnet show-display-colour-info"));
         Add(b, new (_("View"), _("Progress"), "show-progress", "p"));
         Add(b, new (_("View") + " > " + _("On-Screen Menu"), _("On-Screen Menu"), "script-binding select/menu", "F1"));
         Add(b, new (_("View") + " > " + _("On-Screen Menu"), _("Playlist"), "script-binding select/select-playlist", "F8"));
