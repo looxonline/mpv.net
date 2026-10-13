@@ -35,7 +35,7 @@ HDR passthrough is disabled by default. HDR source material is not the validatio
 target of this build; this is an SDR playback build, not a codec-level HDR ban.
 Windows HDR and automatic system colour management require separate validation.
 
-Open **Settings > Show Config Editor** (or the configuration editor entry in your
+Open **Config > Show Config Editor** (or the configuration editor entry in your
 menu), then **Video / Colour Management**:
 
 - Automatic: `icc-profile-auto=yes`, with `icc-profile` empty.
@@ -104,3 +104,25 @@ fall back to English. Runtime updates should be pinned and retested explicitly.
 Upstream sources and licences: https://github.com/mpvnet-player/mpv.net (GPL-2.0),
 https://github.com/mpv-player/mpv and its bundled dependencies, and
 https://mediaarea.net/MediaInfo. This repository retains the upstream licence.
+
+## Included upstream fixes
+
+Reviewed pending upstream PRs and implemented these fixes in the fork:
+
+- [#772](https://github.com/mpvnet-player/mpv.net/pull/772): write the input-binding
+  migration back to mpv.conf, preserving mpvnet.conf. Both spellings are handled
+  in one write.
+- [#774](https://github.com/mpvnet-player/mpv.net/pull/774): pass display text as
+  a command argument instead of parsed command text. Audio cycling additionally
+  uses actual track IDs, handling disabled and non-contiguous IDs.
+- [#778](https://github.com/mpvnet-player/mpv.net/pull/778): account for the working
+  area's position when placing the window on secondary monitors.
+- [#780](https://github.com/mpvnet-player/mpv.net/pull/780): skip malformed bare
+  input bindings without crashing the parser.
+- [#790](https://github.com/mpvnet-player/mpv.net/pull/790): check mpv_create before
+  calling APIs or starting the event thread.
+
+These are reviewed adaptations, not an unreviewed merge of all pending PRs.
+CI regression checks cover config preservation, malformed bindings, text command
+injection, and disabled/non-contiguous audio IDs. Allocation-failure startup and
+physical multi-monitor window placement still need targeted/manual validation.

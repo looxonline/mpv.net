@@ -6,7 +6,7 @@ $results = Join-Path $out 'test-results'
 New-Item -ItemType Directory -Force $results | Out-Null
 & dotnet publish "$PSScriptRoot/SdrSmoke/SdrSmoke.csproj" -c Release -r win-x64 --self-contained true -o "$out/smoke"
 if ($LASTEXITCODE -ne 0) { throw 'Smoke test compilation failed' }
-foreach ($mode in @('defaults', 'override', 'render')) {
+foreach ($mode in @('defaults', 'override', 'regressions', 'render')) {
     & "$out/smoke/SdrSmoke.exe" $mode "$out/publish" $results
     if ($LASTEXITCODE -ne 0) { throw "Smoke test failed: $mode" }
 }

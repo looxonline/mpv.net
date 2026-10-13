@@ -17,6 +17,21 @@ NativeLibrary.SetDllImportResolver(typeof(LibMpv).Assembly,
 
 string extra = mode == "override" ? "icc-profile-auto=no\ntarget-peak=120\n" : "";
 File.WriteAllText(Path.Combine(config, "mpv.conf"), "load-scripts=no\nosc=no\n" + extra);
+if (mode == "regressions")
+{
+    string applicationConfig = Path.Combine(config, "mpvnet.conf");
+    File.WriteAllText(applicationConfig, "# preserve application settings\nmedia-info=no\n");
+    File.AppendAllText(Path.Combine(config, "mpv.conf"),
+        "input-default-bindings=no\ninput-default-bindings = no\nvolume=50\n");
+    Global.App.ApplyInputDefaultBindingsFix();
+    Require(File.ReadAllText(applicationConfig) == "# preserve application settings\nmedia-info=no\n",
+        "Config migration preserves mpvnet.conf (#772)");
+    string migrated = File.ReadAllText(Path.Combine(config, "mpv.conf"));
+    Require(!migrated.Contains("input-default-bindings") && migrated.Contains("volume=50"),
+        "Config migration updates only mpv.conf (#772)");
+    Require(InputHelp.Parse("BROKEN\nx cycle pause\n").Any(binding => binding.Input == "x"),
+        "Malformed binding is skipped and valid binding survives (#780)");
+}
 var player = Global.Player;
 player.Init(IntPtr.Zero, false);
 try
@@ -27,6 +42,27 @@ try
     Require(player.GetPropertyString("target-colorspace-hint") == "no", "SDR colourspace signalling");
     Require(player.GetPropertyInt("target-peak") == (mode == "override" ? 120 : 100), "SDR peak/config override");
     Console.WriteLine(player.GetPropertyString("mpv-version"));
+
+    if (mode == "regressions")
+    {
+        player.SetPropertyInt("volume", 50);
+        Command.ShowText("\"; set volume 17; show-text \"", 100, 16);
+        Require(player.GetPropertyInt("volume") == 50, "Display text cannot inject a command (#774)");
+        player.MediaTracks = new List<MediaTrack>
+        {
+            new() { ID = 2, Type = "a", Text = "A: First" },
+            new() { ID = 7, Type = "a", Text = "A: Second" }
+        };
+        player.SetPropertyInt("aid", 2);
+        Command.Current.Commands["cycle-audio"](Array.Empty<string>());
+        Require(player.GetPropertyInt("aid") == 7, "Audio cycles to real non-contiguous ID (#774)");
+        Command.Current.Commands["cycle-audio"](Array.Empty<string>());
+        Require(player.GetPropertyInt("aid") == 2, "Audio cycles back to first ID (#774)");
+        player.MediaTracks.RemoveAt(1);
+        player.SetPropertyString("aid", "no");
+        Command.Current.Commands["cycle-audio"](Array.Empty<string>());
+        Require(player.GetPropertyInt("aid") == 2, "Disabled single audio track can be enabled (#774)");
+    }
 
     if (mode == "render")
     {
