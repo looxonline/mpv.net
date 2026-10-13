@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using MpvNet;
 using MpvNet.Native;
 
@@ -73,6 +75,7 @@ try
         player.SetPropertyString("log-file", log);
         player.SetPropertyString("msg-level", "all=v");
         player.SetPropertyString("d3d11-warp", "yes");
+        player.SetPropertyString("dither-depth", "no");
         player.SetPropertyString("icc-profile", icc);
         player.SetPropertyBool("icc-cache", false);
         player.SetPropertyString("image-display-duration", "inf");
@@ -101,9 +104,11 @@ try
         string unmanaged = Path.Combine(results, "icc-off.png");
         player.CommandV("screenshot-to-file", unmanaged, "window");
         Require(File.Exists(unmanaged), "Unmanaged rendering screenshot");
-        Require(!File.ReadAllBytes(managed).SequenceEqual(File.ReadAllBytes(unmanaged)),
+        Require(!ReadPixels(managed).SequenceEqual(ReadPixels(unmanaged)),
             "ICC conversion changes rendered output");
-        string logs = File.ReadAllText(log);
+        using var logStream = new FileStream(log, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var logReader = new StreamReader(logStream);
+        string logs = logReader.ReadToEnd();
         Require(logs.Contains("Opening ICC profile"), "ICC profile load logged");
         Require(!logs.Contains("Error loading ICC profile"), "No ICC loading failure");
     }
@@ -118,6 +123,17 @@ static void Require(bool condition, string description)
 {
     if (!condition) throw new Exception("FAIL: " + description);
     Console.WriteLine("PASS: " + description);
+}
+static byte[] ReadPixels(string path)
+{
+    using var stream = File.OpenRead(path);
+    var image = BitmapDecoder.Create(stream, BitmapCreateOptions.PreservePixelFormat,
+        BitmapCacheOption.OnLoad).Frames[0];
+    var converted = new FormatConvertedBitmap(image, PixelFormats.Bgra32, null, 0);
+    int stride = converted.PixelWidth * 4;
+    byte[] pixels = new byte[stride * converted.PixelHeight];
+    converted.CopyPixels(pixels, stride, 0);
+    return pixels;
 }
 sealed class IdentityTranslator : ITranslator
 {
