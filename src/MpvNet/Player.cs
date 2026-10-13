@@ -107,6 +107,11 @@ public class MainPlayer : MpvClient
         SetPropertyString("vo", "gpu");
         SetPropertyString("gpu-api", "d3d11");
         SetPropertyBool("icc-profile-auto", true);
+        // Older libmpv builds could cache a solid-grey BT.1886 LUT. Keep those
+        // entries out of the fixed renderer without deleting user cache files.
+        SetPropertyString("icc-cache-dir", System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "mpv.net", "icc-cache-v2"));
         SetPropertyString("target-colorspace-hint", "no");
         SetPropertyString("target-prim", "bt.709");
         SetPropertyString("target-trc", "bt.1886");

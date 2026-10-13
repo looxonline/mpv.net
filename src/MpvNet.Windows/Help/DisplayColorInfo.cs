@@ -18,6 +18,7 @@ internal static class DisplayColorInfo
         return $"Display: {display}\nICC mode: {mode}\n" +
             $"{(manual.Length > 0 ? "Configured profile" : "Windows assigned profile")}: {profile}\n\n" +
             $"Renderer: {Player.GetPropertyString("current-vo")}\n" +
+            $"mpv runtime: {Player.GetPropertyString("mpv-version")}\n" +
             $"GPU API setting: {Player.GetPropertyString("gpu-api")}\n" +
             $"Output primaries: {Player.GetPropertyString("video-out-params/primaries")}\n" +
             $"Output transfer: {Player.GetPropertyString("video-out-params/gamma")}\n\n" +

@@ -18,7 +18,7 @@ NativeLibrary.SetDllImportResolver(typeof(LibMpv).Assembly,
     (name, assembly, searchPath) => name == "libmpv-2.dll"
         ? NativeLibrary.Load(Path.Combine(runtime, name)) : IntPtr.Zero);
 
-string extra = mode == "override" ? "icc-profile-auto=no\ntarget-peak=120\n" : "";
+string extra = mode == "override" ? "icc-profile-auto=no\ntarget-peak=120\nicc-cache-dir=custom-icc-cache\n" : "";
 File.WriteAllText(Path.Combine(config, "mpv.conf"), "load-scripts=no\nosc=no\n" + extra);
 if (mode == "regressions")
 {
@@ -42,6 +42,10 @@ try
     Require(player.GetPropertyString("vo") == "gpu", "GPU colour renderer default");
     Require(player.GetPropertyString("gpu-api") == "d3d11", "D3D11 default");
     Require(player.GetPropertyBool("icc-profile-auto") == (mode != "override"), "ICC default/config override");
+    Require(player.GetPropertyString("icc-cache-dir") == (mode == "override" ? "custom-icc-cache" :
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "mpv.net", "icc-cache-v2")), "ICC cache migration/config override");
+    Require(player.GetPropertyString("icc-force-contrast") == "no", "Automatic ICC black-point detection retained");
     Require(player.GetPropertyString("target-colorspace-hint") == "no", "SDR colourspace signalling");
     Require(player.GetPropertyString("target-trc") == "bt.1886", "SDR transfer default");
     if (mode == "override")
@@ -94,21 +98,30 @@ try
                 for (int x = 0; x < 256; x++)
                     file.Write(new byte[] { (byte)x, (byte)y, 96 });
         }
-        player.CommandV("loadfile", sample);
-        Require(SpinWait.SpinUntil(() => player.GetPropertyInt("video-out-params/w") > 0,
-            TimeSpan.FromSeconds(30)), "D3D11 software renderer opens a frame");
-        Thread.Sleep(2000);
-        string managed = Path.Combine(results, "icc-on.png");
-        player.CommandV("screenshot-to-file", managed, "window");
-        Require(File.Exists(managed) && new FileInfo(managed).Length > 100, "ICC rendering screenshot");
-        player.SetPropertyBool("icc-profile-auto", false);
-        player.SetPropertyString("icc-profile", "");
-        Thread.Sleep(2000);
-        string unmanaged = Path.Combine(results, "icc-off.png");
-        player.CommandV("screenshot-to-file", unmanaged, "window");
-        Require(File.Exists(unmanaged), "Unmanaged rendering screenshot");
-        Require(!ReadPixels(managed).SequenceEqual(ReadPixels(unmanaged)),
-            "ICC conversion changes rendered output");
+        // An sRGB image alone misses the BT.1886 black-point NaN regression in
+        // older libmpv/LittleCMS combinations (mpv #17439, fixed by 47f81c8).
+        foreach (string transfer in new[] { "srgb", "bt.1886" })
+        {
+            player.SetPropertyString("vf", $"format=gamma={transfer}:primaries=bt.709");
+            player.SetPropertyBool("icc-profile-auto", true);
+            player.SetPropertyString("icc-profile", icc);
+            player.CommandV("loadfile", sample);
+            Require(SpinWait.SpinUntil(() => player.GetPropertyInt("video-out-params/w") > 0 &&
+                player.GetPropertyString("video-out-params/gamma") == transfer,
+                TimeSpan.FromSeconds(30)), $"D3D11 opens a {transfer} frame");
+            Thread.Sleep(2000);
+            string managed = Path.Combine(results, $"{transfer}-icc-on.png");
+            player.CommandV("screenshot-to-file", managed, "window");
+            RequireGradient(managed, transfer);
+            player.SetPropertyBool("icc-profile-auto", false);
+            player.SetPropertyString("icc-profile", "");
+            Thread.Sleep(2000);
+            string unmanaged = Path.Combine(results, $"{transfer}-icc-off.png");
+            player.CommandV("screenshot-to-file", unmanaged, "window");
+            RequireGradient(unmanaged, transfer);
+            Require(!ReadPixels(managed).SequenceEqual(ReadPixels(unmanaged)),
+                $"ICC conversion changes {transfer} output");
+        }
         using var logStream = new FileStream(log, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         using var logReader = new StreamReader(logStream);
         string logs = logReader.ReadToEnd();
@@ -137,6 +150,23 @@ static byte[] ReadPixels(string path)
     byte[] pixels = new byte[stride * converted.PixelHeight];
     converted.CopyPixels(pixels, stride, 0);
     return pixels;
+}
+static void RequireGradient(string path, string transfer)
+{
+    byte[] pixels = ReadPixels(path);
+    var reds = new HashSet<byte>();
+    var greens = new HashSet<byte>();
+    int chromatic = 0;
+    for (int i = 0; i < pixels.Length; i += 4)
+    {
+        reds.Add(pixels[i + 2]);
+        greens.Add(pixels[i + 1]);
+        if (Math.Abs(pixels[i + 2] - pixels[i + 1]) > 20) chromatic++;
+    }
+    Require(reds.Count > 100 && greens.Count > 100 &&
+        reds.Max() - reds.Min() > 180 && greens.Max() - greens.Min() > 180 &&
+        chromatic > pixels.Length / 4 / 3,
+        $"{transfer} renders a full colour gradient, not a blank/grey frame ({Path.GetFileName(path)})");
 }
 sealed class IdentityTranslator : ITranslator
 {

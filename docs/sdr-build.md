@@ -76,8 +76,9 @@ not produce the same file-opening message as manual profiles.
 ## Verification
 
 CI tests actual defaults and config overrides against the bundled libmpv, renders
-a synthetic gradient through a Windows ICC profile using D3D11 WARP, compares
-ICC-on/off output, and installs/uninstalls the generated package. Diagnostics are
+synthetic sRGB and BT.1886 gradients through a Windows ICC profile using D3D11
+WARP, rejects blank/grey output, compares ICC-on/off output, and installs/uninstalls
+the generated package. Diagnostics are
 uploaded separately. A cloud runner does not establish physical colour accuracy.
 
 On the Windows 11 playback machine:
@@ -92,19 +93,34 @@ On the Windows 11 playback machine:
 
 ## Building
 
-Run `./src/Tools/build-sdr.ps1` on Windows with the .NET 10 SDK and Inno Setup 6,
+Run `./src/Tools/build-sdr.ps1` on Windows with the .NET 10 SDK, Inno Setup 6 and 7-Zip,
 then `./tests/Test-SdrBuild.ps1`. The GitHub workflow does both. The installer is
 under `artifacts/installer`, accompanied by its SHA-256 checksum.
 
-Native libraries, the console launcher and existing translations are taken from
-upstream mpv.net v7.1.2.0's x64 archive and verified by SHA-256. The managed player
-is compiled from this repository; no upstream player executable is repackaged.
-`BUILD-INFO.txt` records the source commit and dependency archive. New strings
+MediaInfo, the console launcher and existing translations come from upstream
+mpv.net v7.1.2.0. libmpv comes from shinchiro's baseline x86-64 build dated
+2026-10-13 (mpv commit `9d144e57b6`), listed on [mpv's installation page](https://mpv.io/installation/).
+Both archives are pinned and verified by SHA-256. The managed player is compiled
+from this repository; no upstream player executable is repackaged.
+`BUILD-INFO.txt` records the source commit and dependency archives. New strings
 fall back to English. Runtime updates should be pinned and retested explicitly.
 
 Upstream sources and licences: https://github.com/mpvnet-player/mpv.net (GPL-2.0),
 https://github.com/mpv-player/mpv and its bundled dependencies, and
 https://mediaarea.net/MediaInfo. This repository retains the upstream licence.
+
+## Grey-screen ICC fix
+
+The bundled libmpv includes upstream [fix 47f81c8](https://github.com/mpv-player/mpv/commit/47f81c8d7e5edbb20a5b23c76b33a098335e595a).
+Older builds can produce an invalid BT.1886 curve from tiny negative black-point
+components and display a uniform grey frame with Windows' standard sRGB profile.
+Automatic ICC selection and black-point detection remain enabled; no forced
+contrast, transfer override or software rendering workaround is needed.
+
+By default, this build stores ICC lookup tables in
+`%LOCALAPPDATA%\mpv.net\icc-cache-v2` to avoid reusing broken tables made by the old
+runtime. Existing caches are preserved. If you explicitly set `icc-cache-dir`,
+choose a fresh directory or rebuild that cache after upgrading.
 
 ## Included upstream fixes
 
