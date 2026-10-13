@@ -111,7 +111,7 @@ public class MainPlayer : MpvClient
         // entries out of the fixed renderer without deleting user cache files.
         SetPropertyString("icc-cache-dir", System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "mpv.net", "icc-cache-v2"));
+            "mpv.net", "icc-cache-v2").Replace('\\', '/'));
         SetPropertyString("target-colorspace-hint", "no");
         SetPropertyString("target-prim", "bt.709");
         SetPropertyString("target-trc", "bt.1886");

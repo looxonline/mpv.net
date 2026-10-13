@@ -44,7 +44,7 @@ try
     Require(player.GetPropertyBool("icc-profile-auto") == (mode != "override"), "ICC default/config override");
     Require(player.GetPropertyString("icc-cache-dir") == (mode == "override" ? "custom-icc-cache" :
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "mpv.net", "icc-cache-v2")), "ICC cache migration/config override");
+            "mpv.net", "icc-cache-v2").Replace('\\', '/')), "ICC cache migration/config override");
     Require(player.GetPropertyString("icc-force-contrast") == "no", "Automatic ICC black-point detection retained");
     Require(player.GetPropertyString("target-colorspace-hint") == "no", "SDR colourspace signalling");
     Require(player.GetPropertyString("target-trc") == "bt.1886", "SDR transfer default");
@@ -122,10 +122,24 @@ try
             Require(!ReadPixels(managed).SequenceEqual(ReadPixels(unmanaged)),
                 $"ICC conversion changes {transfer} output");
         }
+        player.SetPropertyBool("icc-cache", true);
+        player.SetPropertyBool("icc-profile-auto", true);
+        player.SetPropertyString("icc-profile", icc);
+        Thread.Sleep(2000);
+        string cache = player.GetPropertyString("icc-cache-dir");
+        Require(Directory.Exists(cache) && Directory.EnumerateFiles(cache).Any(),
+            "ICC cache directory is created and populated");
+        player.SetPropertyString("icc-profile", "");
+        player.SetPropertyString("icc-profile", icc);
+        Thread.Sleep(2000);
+        string cached = Path.Combine(results, "bt.1886-icc-cached.png");
+        player.CommandV("screenshot-to-file", cached, "window");
+        RequireGradient(cached, "bt.1886");
         using var logStream = new FileStream(log, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         using var logReader = new StreamReader(logStream);
         string logs = logReader.ReadToEnd();
         Require(logs.Contains("Opening ICC profile"), "ICC profile load logged");
+        Require(logs.Contains("Opening 3D LUT cache"), "Corrected ICC LUT is reused from cache");
         Require(!logs.Contains("Error loading ICC profile"), "No ICC loading failure");
     }
 }
