@@ -20,6 +20,27 @@ foreach ($name in @('mpvnet.exe', 'libmpv-2.dll', 'MediaInfo.dll', 'mpvnet.com')
         throw "Installed file differs: $name"
     }
 }
+$uiConfig = Join-Path $results 'installed-app-config'
+New-Item -ItemType Directory -Force $uiConfig | Out-Null
+$previousConfig = $env:MPVNET_HOME
+$env:MPVNET_HOME = $uiConfig
+$app = $null
+try {
+    $app = Start-Process "$installed/mpvnet.exe" -ArgumentList @('--idle=yes', '--load-scripts=no', '--d3d11-warp=yes', "--log-file=`"$results/installed-app.log`"", "`"$results/gradient.ppm`"") -PassThru
+    $deadline = [DateTime]::UtcNow.AddSeconds(30)
+    do {
+        Start-Sleep -Milliseconds 250
+        $app.Refresh()
+        if ($app.HasExited) { throw "Installed application exited during startup: $($app.ExitCode)" }
+    } while ($app.MainWindowHandle -eq 0 -and [DateTime]::UtcNow -lt $deadline)
+    if ($app.MainWindowHandle -eq 0) { throw 'Installed application did not create its window' }
+    Start-Sleep -Seconds 2
+    if (!$app.CloseMainWindow() -or !$app.WaitForExit(20000)) { throw 'Installed application did not close normally' }
+    if ($app.ExitCode -ne 0) { throw "Installed application failed: $($app.ExitCode)" }
+} finally {
+    if ($null -ne $app -and !$app.HasExited) { $app.Kill() }
+    $env:MPVNET_HOME = $previousConfig
+}
 $process = Start-Process "$installed/unins000.exe" -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -Wait -PassThru
 if ($process.ExitCode -ne 0) { throw 'Uninstall failed' }
-'PASS: defaults, overrides, native ICC rendering, installation and uninstall' | Set-Content "$results/summary.txt"
+'PASS: defaults, overrides, upstream regressions, native ICC rendering, installed GUI startup/exit, installation and uninstall' | Set-Content "$results/summary.txt"
