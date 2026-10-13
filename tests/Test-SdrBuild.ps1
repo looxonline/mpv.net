@@ -14,6 +14,11 @@ $setup = @(Get-ChildItem "$out/installer" -Filter '*.exe')
 if ($setup.Count -ne 1) { throw 'Expected exactly one installer' }
 $appVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo("$out/publish/mpvnet.exe").FileVersion
 $setupVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($setup[0].FullName)
+[pscustomobject]@{
+    ApplicationVersion = $appVersion
+    InstallerFileVersion = $setupVersion.FileVersion
+    InstallerProductVersion = $setupVersion.ProductVersion
+} | ConvertTo-Json | Tee-Object -FilePath "$results/installer-version.json" | Write-Host
 if ($setupVersion.FileVersion -ne $appVersion -or $setupVersion.ProductVersion -ne $appVersion) {
     throw "Installer version does not match application version $appVersion"
 }
