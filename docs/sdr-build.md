@@ -26,10 +26,11 @@ icc-profile-auto=yes
 target-colorspace-hint=no
 target-prim=bt.709
 target-trc=bt.1886
-target-peak=100
 ```
 
 A valid ICC profile takes precedence over target primaries/transfer settings.
+Peak luminance remains at mpv's automatic SDR default to avoid introducing an
+extra tone-mapping operation into SDR playback.
 Without one, output falls back to the SDR target; it is not display-corrected.
 HDR passthrough is disabled by default. HDR source material is not the validation
 target of this build; this is an SDR playback build, not a codec-level HDR ban.

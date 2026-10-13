@@ -42,7 +42,9 @@ try
     Require(player.GetPropertyString("gpu-api") == "d3d11", "D3D11 default");
     Require(player.GetPropertyBool("icc-profile-auto") == (mode != "override"), "ICC default/config override");
     Require(player.GetPropertyString("target-colorspace-hint") == "no", "SDR colourspace signalling");
-    Require(player.GetPropertyInt("target-peak") == (mode == "override" ? 120 : 100), "SDR peak/config override");
+    Require(player.GetPropertyString("target-trc") == "bt.1886", "SDR transfer default");
+    if (mode == "override")
+        Require(player.GetPropertyInt("target-peak") == 120, "User target-peak override");
     Console.WriteLine(player.GetPropertyString("mpv-version"));
 
     if (mode == "regressions")

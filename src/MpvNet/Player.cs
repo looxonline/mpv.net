@@ -110,7 +110,6 @@ public class MainPlayer : MpvClient
         SetPropertyString("target-colorspace-hint", "no");
         SetPropertyString("target-prim", "bt.709");
         SetPropertyString("target-trc", "bt.1886");
-        SetPropertyInt("target-peak", 100);
 
         SetPropertyBool("input-default-bindings", true);
         SetPropertyBool("input-builtin-bindings", false);
