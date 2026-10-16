@@ -47,6 +47,7 @@ public class GuiCommand
         ["show-conf-editor"] = args => ShowDialog(typeof(ConfWindow)),
         ["show-decoders"] = args => ShowDecoders(),
         ["show-demuxers"] = args => ShowDemuxers(),
+        ["show-display-colour-info"] = args => Msg.ShowInfo(DisplayColorInfo.Describe(MainForm.Instance!.Handle)),
         ["show-info"] = args => ShowMediaInfo(new[] { "osd" }),
         ["show-input-editor"] = args => ShowDialog(typeof(InputWindow)),
         ["show-keys"] = args => ShowKeys(),

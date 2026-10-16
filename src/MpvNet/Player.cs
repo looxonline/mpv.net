@@ -73,6 +73,9 @@ public class MainPlayer : MpvClient
         MainHandle = mpv_create();
         Handle = MainHandle;
 
+        if (MainHandle == IntPtr.Zero)
+            throw new Exception("error mpv_create");
+
         var events = Enum.GetValues<mpv_event_id>().Cast<mpv_event_id>();
 
         foreach (mpv_event_id i in events)
@@ -84,9 +87,6 @@ public class MainPlayer : MpvClient
 
         if (formHandle != IntPtr.Zero)
             TaskHelp.Run(MainEventLoop);
-
-        if (MainHandle == IntPtr.Zero)
-            throw new Exception("error mpv_create");
 
         if (App.IsTerminalAttached)
         {
@@ -101,6 +101,20 @@ public class MainPlayer : MpvClient
         }
 
         SetPropertyInt("osd-duration", 2000);
+
+        // Applied before mpv.conf and command-line options, so users can override
+        // these defaults. Colour conversion happens in mpv's renderer after decode.
+        SetPropertyString("vo", "gpu");
+        SetPropertyString("gpu-api", "d3d11");
+        SetPropertyBool("icc-profile-auto", true);
+        // Older libmpv builds could cache a solid-grey BT.1886 LUT. Keep those
+        // entries out of the fixed renderer without deleting user cache files.
+        SetPropertyString("icc-cache-dir", System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "mpv.net", "icc-cache-v2").Replace('\\', '/'));
+        SetPropertyString("target-colorspace-hint", "no");
+        SetPropertyString("target-prim", "bt.709");
+        SetPropertyString("target-trc", "bt.1886");
 
         SetPropertyBool("input-default-bindings", true);
         SetPropertyBool("input-builtin-bindings", false);

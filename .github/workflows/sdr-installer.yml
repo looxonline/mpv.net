@@ -1,0 +1,46 @@
+name: SDR Windows installer
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: sdr-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build self-contained player and installer
+        shell: pwsh
+        run: ./src/Tools/build-sdr.ps1
+      - name: Test native renderer and installer
+        shell: pwsh
+        run: ./tests/Test-SdrBuild.ps1
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: mpv.net-SDR-Windows-x64
+          path: |
+            artifacts/installer/*.exe
+            artifacts/installer/SHA256SUMS.txt
+            artifacts/publish/SDR-README.md
+            artifacts/publish/BUILD-INFO.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdr-test-diagnostics
+          path: artifacts/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
